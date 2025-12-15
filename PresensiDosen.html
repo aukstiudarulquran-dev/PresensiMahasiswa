@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Presensi Dosen STIU Darul Qur'an Mulia</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+    
+    iframe {
+      width: 100%;
+      height: 100vh;
+      border: none;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+<iframe 
+  id="tallyframe"
+  src=""
+  loading="lazy">
+</iframe>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  if (!navigator.geolocation) {
+    alert("GPS tidak didukung di perangkat ini.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(success, error, {
+    enableHighAccuracy: true
+  });
+
+  function success(pos) {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+
+    const reverseURL = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
+
+    // TIMEOUT: kalau 3 detik tidak ada response, pakai fallback
+    const timeout = new Promise((resolve) =>
+      setTimeout(() => resolve(null), 3000)
+    );
+
+    Promise.race([
+      fetch(reverseURL, {
+        headers: { "User-Agent": "STIU-DQ-Presensi/1.0" }
+      }).then(r => r.json()).catch(() => null),
+      timeout
+    ])
+    .then(data => {
+      let alamat;
+
+      if (data && data.display_name) {
+        alamat = data.display_name;
+      } else {
+        alamat = `${lat},${lng}`;
+      }
+
+      const embedURL = `https://tally.so/r/Ekq5oq?location=${encodeURIComponent(alamat)}&t=${Date.now()}`;
+
+      document.getElementById("tallyframe").src = embedURL;
+    });
+  }
+
+  function error(err) {
+    console.log("GPS error:", err);
+    alert("Tidak bisa mendapatkan lokasi. Izinkan akses lokasi.");
+  }
+});
+</script>
+
+</body>
+</html>
